@@ -645,6 +645,22 @@ public class AccountHeaderBuilder {
         return this;
     }
 
+
+    // onDrawerPreProfileSwitchListener
+    protected AccountHeader.OnAccountHeaderPreProfileChangeListener mOnAccountHeaderPreProfileChangeListener;
+
+    /**
+     * Define a OnAccountHeaderPreProfileChangeListener for the accountHeader
+     *
+     * @param onAccountHeaderPreProfileChangeListener
+     * @return
+     */
+    public AccountHeaderBuilder withOnAccountHeaderPreProfileSwitchListener(@NonNull AccountHeader.OnAccountHeaderPreProfileChangeListener onAccountHeaderPreProfileChangeListener) {
+        this.mOnAccountHeaderPreProfileChangeListener = onAccountHeaderPreProfileChangeListener;
+        return this;
+    }
+
+
     //the on long click listener to be fired on profile longClick inside the list
     protected AccountHeader.OnAccountHeaderItemLongClickListener mOnAccountHeaderItemLongClickListener;
 
@@ -1269,22 +1285,30 @@ public class AccountHeaderBuilder {
     };
 
     protected void onProfileClick(View v, boolean current) {
+        boolean consumed = false;
+
         final IProfile profile = (IProfile) v.getTag(R.id.material_drawer_profile_header);
-        switchProfiles(profile);
+
+        boolean validProfileChange = true;
+        if (mOnAccountHeaderPreProfileChangeListener != null) {
+            validProfileChange = mOnAccountHeaderPreProfileChangeListener.onPreProfileChange(v, profile, current);
+        }
+        if (validProfileChange) {
+            switchProfiles(profile);
+
+            //notify the MiniDrawer about the clicked profile (only if one exists and is hooked to the Drawer
+            if (mDrawer != null && mDrawer.getDrawerBuilder() != null && mDrawer.getDrawerBuilder().mMiniDrawer != null) {
+                mDrawer.getDrawerBuilder().mMiniDrawer.onProfileClick();
+            }
+
+            //notify about the changed profile
+            if (mOnAccountHeaderListener != null) {
+                consumed = mOnAccountHeaderListener.onProfileChanged(v, profile, current);
+            }
+        }
 
         //reset the drawer content
         resetDrawerContent(v.getContext());
-
-        //notify the MiniDrawer about the clicked profile (only if one exists and is hooked to the Drawer
-        if (mDrawer != null && mDrawer.getDrawerBuilder() != null && mDrawer.getDrawerBuilder().mMiniDrawer != null) {
-            mDrawer.getDrawerBuilder().mMiniDrawer.onProfileClick();
-        }
-
-        //notify about the changed profile
-        boolean consumed = false;
-        if (mOnAccountHeaderListener != null) {
-            consumed = mOnAccountHeaderListener.onProfileChanged(v, profile, current);
-        }
 
         if (!consumed) {
             if (mOnProfileClickDrawerCloseDelay > 0) {
@@ -1395,15 +1419,32 @@ public class AccountHeaderBuilder {
     private Drawer.OnDrawerItemClickListener onDrawerItemClickListener = new Drawer.OnDrawerItemClickListener() {
         @Override
         public boolean onItemClick(final View view, int position, final IDrawerItem drawerItem) {
-            final boolean isCurrentSelectedProfile;
-            if (drawerItem != null && drawerItem instanceof IProfile && drawerItem.isSelectable()) {
-                isCurrentSelectedProfile = switchProfiles((IProfile) drawerItem);
-            } else {
-                isCurrentSelectedProfile = false;
+            boolean consumed = false;
+            final boolean isSelectableProfile = drawerItem != null && drawerItem instanceof IProfile && drawerItem.isSelectable();
+            boolean isCurrentSelectedProfile = isSelectableProfile && drawerItem == mCurrentProfile;
+
+            boolean validProfileChange = true;
+            if (mOnAccountHeaderPreProfileChangeListener != null) {
+                validProfileChange = mOnAccountHeaderPreProfileChangeListener.onPreProfileChange(view, (IProfile) drawerItem, isCurrentSelectedProfile);
             }
 
-            if (mResetDrawerOnProfileListClick) {
-                mDrawer.setOnDrawerItemClickListener(null);
+            if (validProfileChange) {
+                if (isSelectableProfile) {
+                    isCurrentSelectedProfile = switchProfiles((IProfile) drawerItem);
+                } else {
+                    isCurrentSelectedProfile = false;
+                }
+
+                if (drawerItem != null && drawerItem instanceof IProfile) {
+                    if (mOnAccountHeaderListener != null) {
+                        consumed = mOnAccountHeaderListener.onProfileChanged(view, (IProfile) drawerItem, isCurrentSelectedProfile);
+                    }
+                }
+
+                //notify the MiniDrawer about the clicked profile (only if one exists and is hooked to the Drawer
+                if (mDrawer != null && mDrawer.getDrawerBuilder() != null && mDrawer.getDrawerBuilder().mMiniDrawer != null) {
+                    mDrawer.getDrawerBuilder().mMiniDrawer.onProfileClick();
+                }
             }
 
             //wrap the onSelection call and the reset stuff within a handler to prevent lag
@@ -1411,16 +1452,8 @@ public class AccountHeaderBuilder {
                 resetDrawerContent(view.getContext());
             }
 
-            //notify the MiniDrawer about the clicked profile (only if one exists and is hooked to the Drawer
-            if (mDrawer != null && mDrawer.getDrawerBuilder() != null && mDrawer.getDrawerBuilder().mMiniDrawer != null) {
-                mDrawer.getDrawerBuilder().mMiniDrawer.onProfileClick();
-            }
-
-            boolean consumed = false;
-            if (drawerItem != null && drawerItem instanceof IProfile) {
-                if (mOnAccountHeaderListener != null) {
-                    consumed = mOnAccountHeaderListener.onProfileChanged(view, (IProfile) drawerItem, isCurrentSelectedProfile);
-                }
+            if (mResetDrawerOnProfileListClick) {
+                mDrawer.setOnDrawerItemClickListener(null);
             }
 
             //if a custom behavior was chosen via the CloseDrawerOnProfileListClick then use this. else react on the result of the onProfileChanged listener

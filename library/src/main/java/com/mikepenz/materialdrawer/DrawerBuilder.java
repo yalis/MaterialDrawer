@@ -1120,6 +1120,7 @@ public class DrawerBuilder {
         return this;
     }
 
+
     // onDrawerListener
     protected Drawer.OnDrawerNavigationListener mOnDrawerNavigationListener;
 
@@ -1178,6 +1179,15 @@ public class DrawerBuilder {
         this.mSavedInstance = savedInstance;
         return this;
     }
+
+
+//    protected boolean mManualProfileSwitch = false;
+//
+//    public DrawerBuilder withManualProfileSwitch(boolean doManualSwitch) {
+//        mManualProfileSwitch = doManualSwitch;
+//        return this;
+//    }
+
 
     /**
      * helper method to handle when the drawer should be shown on the first launch

@@ -1027,6 +1027,17 @@ public class Drawer {
         boolean onItemClick(View view, int position, IDrawerItem drawerItem);
     }
 
+    public interface OnDrawerPreProfileSwitchListener {
+        /**
+         * @param view
+         * @param position
+         * @param drawerItem
+         * @return true if the profile switch should continue
+         */
+        boolean onPreProfileSwitch(View view, int position, IDrawerItem drawerItem);
+    }
+
+
     public interface OnDrawerItemLongClickListener {
         /**
          * @param view

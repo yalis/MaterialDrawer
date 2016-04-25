@@ -376,6 +376,19 @@ public class AccountHeader {
         boolean onProfileChanged(View view, IProfile profile, boolean current);
     }
 
+
+    public interface OnAccountHeaderPreProfileChangeListener {
+        /**
+         * the event before the profile changes
+         *
+         * @param view
+         * @param profile
+         * @return true if the profile can be changed
+         */
+        boolean onPreProfileChange(View view, IProfile profile, boolean current);
+    }
+
+
     public interface OnAccountHeaderItemLongClickListener {
         /**
          * the event when the profile item is longClicked inside the list
